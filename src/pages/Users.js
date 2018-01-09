@@ -96,7 +96,7 @@ class Users extends Component {
             this.setState({users: u})
 
         } else {
-            this.setState({users: this.state.originalCopy});
+            this._getData();
         }
     };
 
