@@ -1,6 +1,6 @@
 import React, {Component} from 'react';
 import axios from 'axios';
-import {Button, Col, Container, Option, Panel, Row, Select} from "muicss/react";
+import {Col, Container, Option, Panel, Radio, Row, Select} from "muicss/react";
 import UserItem from "../components/UserItem";
 
 class Users extends Component {
@@ -8,57 +8,79 @@ class Users extends Component {
     constructor() {
         super();
         this.state = {
+
+            originalCopy: [],
             users: [],
-            categories: []
+
+            categories: [],
+            filter: 'all'
         }
     }
 
+    componentDidMount() {
+        this._getData();
+    }
+
+    // function to get data from json
     _getData = () => {
         let _this = this;
-        let host = window.location.hostname;
         axios
-            .get("http://" + host + ":3000/dummyData/users.json")
+            .get("https://raw.githubusercontent.com/var/zola-frontend-part1/gh-pages/dummyData/users.json")
             .then(function (result) {
                 _this._getCategories(result.data.data);
                 _this.setState({
-                    users: result.data.data
+                    users: result.data.data,
+                    originalCopy: result.data.data // maintaining a copy to save network calls
                 });
             })
     };
 
-    _filterData = (criteria, e) => {
-        if (criteria === 'all'){
-            this._getData();
+    // function to handle the radio button changes
+    _switchFilter = (ev) => {
+        this.setState({filter: ev.target.value}); // set this for radio button update
+        this._filterData(ev.target.value); // funtion that actually performs the filter
+    };
+
+    // filter the objects
+    _filterData = (criteria) => {
+
+        if (criteria === 'all') {
+            this.setState({users: this.state.originalCopy});
         } else {
-            this._getData();
-            let users = this.state.users;
-            users.filter(u => u.category === criteria);
-            this.setState({users: users});
+            let u = this.state.originalCopy;
+
+            let filteredUsers = u.filter(function (item) {
+                return item.category === criteria;
+            });
+
+            this.setState({users: filteredUsers});
         }
     };
 
+    // function to retrieve all categories
     _getCategories = (users) => {
         let cat = new Set();
-        users.forEach(function(u) {
+        users.forEach(function (u) {
             cat.add(u.category);
         });
         let catArray = Array.from(cat);
         this.setState({categories: catArray.sort()})
     };
 
+    // function to sort users when the select changes
     _sortBy = (ev) => {
         let value = ev.target.value;
 
-        if (value === 'priority'){
+        if (value === 'priority') {
             let u = this.state.users;
-            u.sort(function(a, b) {
+            u.sort(function (a, b) {
                 return a.priority - b.priority;
             });
             this.setState({users: u})
 
-        } else if ( value === 'ascending') {
+        } else if (value === 'ascending') {
             let u = this.state.users;
-            u.sort(function(a, b) {
+            u.sort(function (a, b) {
                 let nameA = a.name.toUpperCase(); // ignore upper and lowercase
                 let nameB = b.name.toUpperCase(); // ignore upper and lowercase
                 if (nameA < nameB) {
@@ -74,13 +96,9 @@ class Users extends Component {
             this.setState({users: u})
 
         } else {
-            this._getData();
+            this.setState({users: this.state.originalCopy});
         }
     };
-
-    componentWillMount() {
-        this._getData();
-    }
 
     render() {
         return (
@@ -92,16 +110,17 @@ class Users extends Component {
                             <Option value="ascending" label="A - Z"/>
                             <Option value="priority" label="Priority"/>
                         </Select>
-                            {this.state.categories.map((cat, key) => {
+                            <div>
+                                <Radio name="filterCat" label="Display all" value='all'
+                                       checked={this.state.filter === 'all'} onChange={this._switchFilter.bind(this)}/>
+                                {this.state.categories.map((cat, key) => {
+                                    return (
+                                        <Radio name="filterCat" key={key} label={cat} value={cat}
+                                               checked={this.state.filter === cat}
+                                               onChange={this._switchFilter.bind(this)}/>
+                                    );
 
-                                    <Col md="4" key={key}><p>
-                                        <Button value={cat}
-                                            onClick={this._filterData.bind(this, c)}
-                                        >{cat}
-                                        </Button>
-                                    </p></Col>
-
-                            })}
+                                })}</div>
                         </Col>
                         <Col md="8">
                             <Row>
